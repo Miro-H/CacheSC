@@ -1,0 +1,5 @@
+# Ignore compiled binaries
+openssl-aes-cbc
+single-eviction
+argon2d-attacker
+argon2d-victim

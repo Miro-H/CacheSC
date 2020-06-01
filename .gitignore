@@ -1,0 +1,23 @@
+## Intermediate results
+*.o
+*.S
+
+## Compiled library archives
+*.a
+
+## GDB files
+.gdb_history
+peda-*.txt
+
+## Mac finder files and hidden folders
+.DS_Store
+
+## Temporary files
+*.swp
+*.swo
+
+## Zip files
+*.tar
+*.tar.gz
+*.zip
+*.gzip
