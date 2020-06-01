@@ -72,13 +72,13 @@ This performs `10000` Prime+Probe measurements.
 
 Plot the results:
 ```text
-$ ./scripts/plot-log.py -o /tmp/cachesc -v -t /tmp/attack.log
+$ ./scripts/plot-log.py -o /tmp -v -t /tmp/attack.log
 ```
 
 Expected result:
 ![](./docs/imgs/l1_single_eviction.png)
 
-For many attacks, it is advantageous to normalize the measurements, e.g. to filter secret-independent cache accesses. The following commands run the same test with normalization and plot the normalized results:
+For many attacks, it is advantageous to normalize the measurements, e.g. to filter secret-independent cache accesses. The following commands run the same test with normalization and plots the normalized results:
 ```text
 $ cd ./demo
 $ NORMALIZE=1 make rebuild
@@ -90,7 +90,7 @@ $ ./scripts/plot-log.py -o /tmp/cachesc -v -t -n /tmp/attack.log
 Expected normalized result:
 ![](./docs/imgs/l1_single_eviction_normalized.png)
 
-This demo attack can also be run on physically indexed caches (such as L2). For this purpose, the following three macros in `single-eviction.c`, and comment out the definitions for L1:
+This demo attack can also be run on physically indexed caches (such as L2). For this purpose, uncomment the following three macros in `single-eviction.c`, and comment out the definitions for L1.
 ```C
 // Uncomment for L2 attack
 #define TARGET_CACHE L2
@@ -98,18 +98,18 @@ This demo attack can also be run on physically indexed caches (such as L2). For 
 #define PRIME prime_rev
 ```
 
-There is a priviliged and unprivileged version of this attack on physically indexed caches. The library will choose itself, based on the available privileges. The privileged version is significantly faster.
+There is a priviliged and unprivileged version of this attack on physically indexed caches. The library will choose itself, based on the available privileges. The privileged version is significantly faster, building the data structure without privileges can require several minutes.
 
 ### 2.2 Chosen-Plaintext Attack on OpenSSL AES-CBC
-This attack uses CacheSC to implement the classic chosen-plaintext attack, similar to the one-round attack from Osvik, Shamir, and Tromer (presented in Cache Attacks and Countermeasures: the Case of AES), to recover half of any key byte of the AES-CBC encryption. However, instead of Evict+Time we use Prime+Probe for this attack. An in-depth discussion of this attack is provided in our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf).
+This attack uses CacheSC to implement the classic chosen-plaintext attack, similar to the one-round attack from Osvik, Shamir, and Tromer (presented in Cache Attacks and Countermeasures: the Case of AES), to recover half of any key byte of the AES-CBC encryption. However, instead of Evict+Time we use Prime+Probe for this attack. Our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf) provides an in-depth discussion of this attack.
 
 Compile the attack by running the following in `./demo`:
 ```text
 $ OPENSSL_INCL=/path/to/openssl/include OPENSSL_LIB=/path/to/openssl/lib make openssl-aes-cbc
 ```
-Where `OPENSSL_INCL` and `OPENSSL_LIB` point to your local OpenSSL installation. Those arguments are obtional and default to `/usr/local/include` respectively `/usr/local/lib`.
+Where `OPENSSL_INCL` and `OPENSSL_LIB` point to your local OpenSSL installation. Specifying those environment variables is optional. Their defaults are `/usr/local/include` respectively `/usr/local/lib`.
 
-Note that you have to ensure that the vulnerable AES-CBC implementation of OpenSSL is run, i.e. not hardware optimizations such as `AES-NI`. We tested this attack on `OpenSSL-0.9.8` (the original version used by Osvik et al.), compiled with the `no-asm` flag.
+Note that you have to ensure that the vulnerable AES-CBC implementation of OpenSSL is run, i.e. not hardware optimizations such as `AES-NI` (OpenSSL checks on runtime, if `AES-NI` is available and may use it, unless you deactivate this). We tested this attack on `OpenSSL-0.9.8` (the original version used by Osvik et al.), compiled with the `no-asm` flag.
 
 It is again advisable to normalize the results, i.e. compile with the `NORMALIZE=1` flag.
 
@@ -118,13 +118,13 @@ The expected plots (obtained as in the previous demo example) are:
 - Normalized: ![](./docs/imgs/openssl_aes_cbc_normalized.png)
 
 ### 2.3 Argon2d
-This is no full attack. It rather provides an entry point for an asynchronous attack to observe cache access patterns of passwords hashed with Argon2d. We argue in our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf) that precise cache side-channel observations on Argon2d could be used for more efficient password cracking, bypassing the parameterisable number of passes over memory.
+This is no full attack. It rather provides an entry point for an asynchronous attack which builds on observing cache access patterns of passwords hashed with Argon2d. We argue in our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf) that precise cache side-channel observations on Argon2d could be used for more efficient password cracking, bypassing Argon's parameterizable number of passes through memory.
 
 Compile the attack by running the following in `./demo`:
 ```text
 $ ARGON_INCL=/path/to/argon2/include ARGON_LIB=/path/to/argon2/lib make argon2d-attacker argon2d-victim
 ```
-Where `ARGON_INCL` and `ARGON_LIB` point to the local installation of [Argon2](https://github.com/p-h-c/phc-winner-argon2) (defaults `/usr/include` and `/usr/lib/x86_64-linux-gnu`).
+Where `ARGON_INCL` and `ARGON_LIB` point to the local installation of [Argon2](https://github.com/p-h-c/phc-winner-argon2). Those variables are again optional and default to `/usr/include` respectively `/usr/lib/x86_64-linux-gnu`.
 
 Start the victim and (privileged) attacker using the following commands:
 ```text
@@ -134,7 +134,7 @@ $ ./argon2d-victim 10 > /tmp/victim.log
 $ sudo pkill -SIGINT -f argon2d-attacker
 ```
 
-The accuracy of those observations could be evaluated by patching `Argon2d` (e.g. the `index_alpha` function in `opt.c`) to also print a time stamp and then observe how many blocks are processed between two scheduling periods of the attacker. We discuss the results of such a comparison in our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf).
+The accuracy of those observations could be evaluated by patching `Argon2d` (e.g. the `index_alpha` function in `opt.c`) to also print a timestamp and then observe how many blocks are processed between two scheduling periods of the attacker. We discuss the results of such a comparison in our [report](./docs/revisiting-microarchitectural-side-channels-Miro-Haller.pdf).
 
 
 ## 3 Plotting Script Options
